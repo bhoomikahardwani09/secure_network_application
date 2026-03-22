@@ -5,6 +5,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include "data_packet.h"
 
 int main(int argc, char* argv[]){
     if(argc != 4){
@@ -28,7 +29,24 @@ int main(int argc, char* argv[]){
         return EXIT_FAILURE;
     }
 
-    if(sendto(udp_socket, msg, strlen(msg) + 1, 0, (struct sockaddr*)&peer_addr, sizeof(peer_addr)) < 0){
+    // if(sendto(udp_socket, msg, strlen(msg) + 1, 0, (struct sockaddr*)&peer_addr, sizeof(peer_addr)) < 0){
+        // perror("Failure in sending the message..!!");
+        // close(udp_socket);
+        // return EXIT_FAILURE;
+    // }
+
+    packet pkt = {0};
+    pkt.start_bit = 0xAA55;
+    pkt.sender_id = 1;
+    pkt.index_num = 9;
+
+    const char* dummy_video = "Simulated video frame data.,";
+    strncpy((char*)pkt.payload, dummy_video, sizeof(pkt.payload));
+    pkt.payload_len = strlen(dummy_video);
+
+    pkt.checksum = calculate_packet_crc(&pkt);
+
+    if(sendto(udp_socket, &pkt, sizeof(packet), 0, (struct sockaddr*)&peer_addr, sizeof(peer_addr)) < 0){
         perror("Failure in sending the message..!!");
         close(udp_socket);
         return EXIT_FAILURE;
