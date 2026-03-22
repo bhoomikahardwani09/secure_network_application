@@ -37,20 +37,25 @@ int main(int argc, char* argv[]){
 
     packet pkt = {0};
     pkt.start_bit = 0xAA55;
-    pkt.sender_id = 1;
+    pkt.sender_id = 1;pkt.auth_token = 0x1234;
     pkt.index_num = 9;
+    pkt.auth_token = 0x1234;
+ 
+    strncpy((char*)pkt.payload, msg, sizeof(pkt.payload) - 1);
+    pkt.payload_len = strlen(msg);
 
-    const char* dummy_video = "Simulated video frame data.,";
-    strncpy((char*)pkt.payload, dummy_video, sizeof(pkt.payload));
-    pkt.payload_len = strlen(dummy_video);
+    encrypt_decrypt_payload(pkt.payload, pkt.payload_len, 0xCE);
 
     pkt.checksum = calculate_packet_crc(&pkt);
 
-    if(sendto(udp_socket, &pkt, sizeof(packet), 0, (struct sockaddr*)&peer_addr, sizeof(peer_addr)) < 0){
-        perror("Failure in sending the message..!!");
-        close(udp_socket);
-        return EXIT_FAILURE;
-    }
+    sendto(udp_socket, &pkt, sizeof(packet), 0, (struct sockaddr*)&peer_addr, sizeof(peer_addr));
+    printf("Sent the encrypted request to the server...\n");
+
+    packet response_pkt;
+    socklen_t addr_len = sizeof(peer_addr);
+    recvfrom(udp_socket, &response_pkt, sizeof(packet), 0, (struct sockaddr*)&peer_addr, &addr_len);
+
+    printf("Received server response : %s\n", response_pkt.payload);
 
     printf("Sent \"%s\" to %s:%d\n", msg, peer_ip, peer_port);
     close(udp_socket);
